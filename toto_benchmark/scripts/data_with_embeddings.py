@@ -6,7 +6,7 @@ import yaml, argparse, os, pickle
 from toto_benchmark.scripts.utils import Namespace
 from toto_benchmark.vision import load_model, load_transforms, preprocess_image
 
-def precompute_embeddings(cfg, paths, data_path=None, from_files=True):
+def precompute_embeddings(cfg, paths, data_path=None, from_files=False):
     device = 'cuda:0'
     model = load_model(cfg)
     model.to(device)
@@ -21,7 +21,8 @@ def precompute_embeddings(cfg, paths, data_path=None, from_files=True):
                 assert data_path is not None
                 img = Image.open(os.path.join(data_path, path['traj_id'], path['cam0c'][t]))
             else:
-                img = path['images'][t]
+                img = path['observations'][t]['images0']
+                #breakpoint()
             img = preprocess_image(img, transforms)
             path_images.append(img)
         embeddings = []
@@ -35,6 +36,7 @@ def precompute_embeddings(cfg, paths, data_path=None, from_files=True):
             embeddings = np.vstack(embeddings)
             assert embeddings.shape == (path_len, chunk_embed.shape[1])
         path['embeddings'] = embeddings.copy()
+    np.save("/home/jess/toto_p2/toto_benchmark/toto_benchmark/embedded_data.npy", paths)
     return paths
 
 def precompute_embeddings_byol(cfg, paths, data_path):
