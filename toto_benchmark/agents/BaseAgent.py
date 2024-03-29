@@ -41,6 +41,7 @@ class BaseAgent(Agent):
         self.optimizer.zero_grad()
 
     def train(self, sample):
+        #breakpoint()
         [m.train() for m in self.models.values()]
         self.zero_grad()
         self.compute_loss(sample)

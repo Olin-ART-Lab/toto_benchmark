@@ -25,7 +25,6 @@ class FrankaDatasetTraj(Dataset):
             pass
         self.demos = data
         self.cfg = cfg
-        self.logs_folder = cfg.data.logs_folder
         self.subsample_period = cfg.data.subsample_period
         self.im_h = cfg.data.images.im_h
         self.im_w = cfg.data.images.im_w
@@ -37,20 +36,17 @@ class FrankaDatasetTraj(Dataset):
         self.img_transform_fn = load_transforms(cfg)
         self.noise = cfg.data.noise
         self.crop_images = cfg.data.images.crop
-        self.pick_high_reward_trajs()
 
-        self.subsample_demos()
+        #self.subsample_demos()
 
-        if sim:
-            self.demos = precompute_embeddings(self.cfg, self.demos, from_files=False)
-        elif len(self.cameras) > 0:
-            self.load_imgs()
-
+        self.demos = precompute_embeddings(self.cfg, self.demos, from_files=False)
+        #self.demos = np.load("/home/jess/toto_p2/toto_benchmark/toto_benchmark/embedded_data.npy")
         self.process_demos()
 
     def pick_high_reward_trajs(self):
         original_data_size = len(self.demos)
         if self.top_k is None: # assumed using all successful traj (reward > 0)
+            #breakpoint()
             self.demos = [traj for traj in self.demos if traj['rewards'][-1] > 0]
             print(f"Using {len(self.demos)} number of successful trajs. Total trajs: {original_data_size}")
         elif self.top_k == 1: # using all data
@@ -64,32 +60,43 @@ class FrankaDatasetTraj(Dataset):
 
 
     def subsample_demos(self):
-        for traj in self.demos:
-            for key in traj.keys():
-                if key == 'observations':
-                    traj[key] = traj[key][:, :self.obs_dim]
-                if key == 'rewards':
-                    rew = traj[key][-1]
-                    traj[key] = traj[key][::self.subsample_period]
-                    traj[key][-1] = rew
-                else:
-                    if key not in ('traj_id', 'material', 'normalized_reward'):
+        for traj_set in self.demos:
+            for traj in traj_set:
+                for key in traj.keys():
+                    if key == 'observations':
+                        #breakpoint()
+                        traj[key] = traj[key][:, :self.obs_dim]
+                    if key == 'rewards':
+                        rew = traj[key][-1]
                         traj[key] = traj[key][::self.subsample_period]
+                        traj[key][-1] = rew
+                    else:
+                        if key not in ('traj_id', 'material', 'normalized_reward'):
+                            traj[key] = traj[key][::self.subsample_period]
 
     def process_demos(self):
         inputs, labels = [], []
         for traj in self.demos:
-            traj['observations'] = np.hstack([traj['observations'], traj['embeddings']])
-
+            #breakpoint()
+            states = []
+            traj["images"] = []
+            for o, e in zip(traj["observations"], traj["embeddings"]):
+                #breakpoint()
+                traj["images"].append(o["images0"])
+                #breakpoint()
+                states.append(np.hstack([o['state'].flatten(), e.flatten()]))
+            traj['observations'] = np.array(states)
             if traj['actions'].shape[0] > self.H:
+                #breakpoint()
                 for start in range(traj['actions'].shape[0] - self.H + 1):
                     inputs.append(traj['observations'][start])
                     labels.append(traj['actions'][start : start + self.H, :])
             else:
+                #breakpoint()
                 extended_actions = np.vstack([traj['actions'], np.tile(traj['actions'][-1], [self.H - traj['actions'].shape[0], 1])]) # pad short trajs with the last action
                 inputs.append(traj['observations'][0])
                 labels.append(extended_actions)
-
+        #breakpoint()
         inputs = np.stack(inputs, axis=0)
         labels = np.stack(labels, axis=0)
         if self.cameras:
@@ -101,11 +108,13 @@ class FrankaDatasetTraj(Dataset):
                 else:
                     images.append(traj['images'][0])
             self.images = images
-
-        self.inputs = torch.from_numpy(inputs).float()
-        self.labels = torch.from_numpy(labels).float()
+    
+        #breakpoint()
+        self.inputs = torch.from_numpy(inputs).double()
+        #breakpoint()
+        self.labels = torch.from_numpy(labels).double()
         self.labels = self.labels.reshape([self.labels.shape[0], -1]) # flatten actions to (#trajs, H * action_dim)
-
+        breakpoint()
     def load_imgs(self):
         print("Start loading images...")
         for path in self.demos:
@@ -126,6 +135,7 @@ class FrankaDatasetTraj(Dataset):
                 }
         if self.noise:
             datapoint['inputs'] += torch.randn_like(datapoint['inputs']) * self.noise
+
 
         if self.cameras:
             for _c in self.cameras:

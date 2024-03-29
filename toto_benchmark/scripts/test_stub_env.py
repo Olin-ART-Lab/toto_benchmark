@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     agent, img_transform_fn = init_agent_from_config(cfg, 'cuda:0')
     state = {}
-    if cfg.agent.type == 'bcimage_pre':
+    if cfg.agent.type == 'collab_agent':
         img_transform_fn = load_transforms(cfg)
         state['img_transform_fn'] = img_transform_fn
         state['cam_in_state'] = ['cam0c']
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     while(True):
         obs = env.step()
         start = time.time()
-        if cfg.agent.type == 'bcimage_pre':
+        if cfg.agent.type == 'collab_agent':
             obs = process_image_helper(state, obs)
         action = agent.predict(obs)
         end = time.time()

@@ -90,6 +90,7 @@ def init_weights(m):
         nn.init.xavier_normal_(m.weight)
 
 def get_stats(arr):
+    #breakpoint()
     arr_std = arr.std(0)
     arr_std[arr_std < 1e-4] = 1
     return len(arr_std), arr.mean(0), arr_std
@@ -113,13 +114,14 @@ class Policy(nn.Module):
         self.final = nn.Linear(128, out_dim)
         self.register_buffer("inp_mean", torch.zeros(inp_dim))
         self.register_buffer("inp_std", torch.ones(inp_dim))
-        self.register_buffer("out_mean", torch.zeros(out_dim))
-        self.register_buffer("out_std", torch.ones(out_dim))
+        self.register_buffer("out_mean", torch.zeros(out_dim*5))
+        self.register_buffer("out_std", torch.ones(out_dim*5))
 
     def set_stats(self, dataset):
+        #breakpoint()
         inp_dim, inp_mean, inp_std = get_stats(dataset.inputs)
         _, out_mean, out_std = get_stats(dataset.labels)
-
+        #breakpoint()
         self.inp_mean[:inp_dim].copy_(inp_mean)
         self.inp_std[:inp_dim].copy_(inp_std)
         self.out_mean.copy_(out_mean)

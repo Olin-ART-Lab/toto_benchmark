@@ -19,9 +19,9 @@ def init_agent_from_config(config, device='cpu', normalization=None):
         return _init_agent_from_config(config, device)
     
 
-    elif agent_type == 'collaborator_agent': # TODO (optional): change this to your new agent name
+    elif agent_type == 'collab_agent': # TODO (optional): change this to your new agent name
         from .CollaboratorAgent import _init_agent_from_config
-        return _init_agent_from_config(config, device)
+        return _init_agent_from_config(config, device, normalization)
 
 
     assert f"[ERROR] Unknown agent type {agent_type}"

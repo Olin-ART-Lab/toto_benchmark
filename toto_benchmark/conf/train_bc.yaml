@@ -6,14 +6,14 @@ data:
   sim: False
   pickle_fn: assets/cloud-dataset-scooping/scooping_parsed_with_embeddings_moco_conv5_robocloud.pkl
   subsample_period: 1
-  in_dim: 7
+  in_dim: 2055
   out_dim: 7
-  H: 50 # horizon of actions to predict each time
+  H: 5 # horizon of actions to predict each time
   top_k: null
   images:
     cameras: []
-    im_h: 480
-    im_w: 640
+    im_h: 256
+    im_w: 256
     per_img_out: 128
     crop: True
   noise: 0.0
@@ -29,11 +29,11 @@ agent:
   hidden_dim: 128
 
 training:
-  lr: 1e-3
+  lr: 0.001
   seed: 0
-  epochs: 80
+  epochs: 20
   device: 'cuda:0'
-  batch_size: 128
+  batch_size: 16
   save_every_x_epoch: 10
 
 debug: False

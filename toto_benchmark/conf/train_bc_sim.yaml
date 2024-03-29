@@ -4,7 +4,7 @@ default:
 
 data:
   # part 0 of sim data
-  sim: True
+  sim: False
   pickle_fn: sim/dm_human_dataset.pickle
   subsample_period: 1
   in_dim: 7
@@ -13,7 +13,7 @@ data:
   top_k: null
   images:
     cameras: []
-    im_h: 240
+    im_h: 320
     im_w: 320
     per_img_out: 2048
     crop: True

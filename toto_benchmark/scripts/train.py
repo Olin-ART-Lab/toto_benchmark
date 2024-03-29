@@ -41,11 +41,11 @@ def main(cfg : DictConfig) -> None:
             cfg['data']['images']['crop'] = False
         if 'H' not in cfg['data']:
             cfg['data']['H'] = 1
-        cfg['data']['logs_folder'] = os.path.dirname(cfg['data']['pickle_fn'])
+        #cfg['data']['logs_folder'] = os.path.dirname(cfg['data']['pickle_fn'])
 
     if cfg.agent.type in ['bcimage', 'bcimage_pre']:
         cfg['data']['images']['per_img_out'] = EMBEDDING_DIMS[cfg['agent']['vision_model']]
-        if cfg.agent.type == 'bcimage_pre':
+        if cfg.agent.type == 'collab_agent':
             # assume in_dim is without adding the image embedding dimensions
             cfg['data']['in_dim'] = cfg['data']['in_dim'] + cfg['data']['images']['per_img_out']
 
@@ -55,7 +55,7 @@ def main(cfg : DictConfig) -> None:
         f.write(OmegaConf.to_yaml(cfg, resolve=True))
 
     global_seeding(cfg.training.seed)
-    print(hydra.utils.get_original_cwd(),cfg.data.pickle_fn)
+    #print(hydra.utils.get_original_cwd(),cfg.data.pickle_fn)
 
     agent_name = cfg['saved_folder'].split('outputs/')[-1]
     flat_dict = {}
@@ -64,23 +64,57 @@ def main(cfg : DictConfig) -> None:
     wandb.init(project="toto-bc", config=flat_dict)
     wandb.run.name = "{}".format(agent_name)
 
-    try:
-        with open(os.path.join(hydra.utils.get_original_cwd(), cfg.data.pickle_fn), 'rb') as f:
-            data = pickle.load(f)
-    except:
-        print("\n***Pickle does not exist. Make sure the pickle is in the logs_folder directory.")
-        raise
+  
+    # modify the default parameters of np.load
+    np_load_old = np.load
+    np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
+    all_data = []
+    dir_of_trajs = "/home/jess/bridge_data_v2/data_processing/data/raw/rss/toykitchen2/pnp_push_sweep/00"
+    for root, dirs, files in os.walk(dir_of_trajs):
+        if os.path.basename(root) == "train" or os.path.basename(root) == "val":
+            for filename in files:
+                #print(filename)
+                file_path = os.path.join(root, filename)
+                data_traj = np.load(file_path)
+                all_data.extend(data_traj)
+    print(len(all_data))
+    '''
+      # modify the default parameters of np.load
+    all_data2 = []
+    dir_of_trajs = "/home/jess/bridge_data_v2/data_processing/data/raw/rss/toykitchen2/pnp_sweep/00"
+    for root, dirs, files in os.walk(dir_of_trajs):
+        if os.path.basename(root) == "train" or os.path.basename(root) == "val":
+            for filename in files:
+                #print(filename)
+                file_path = os.path.join(root, filename)
+                data_traj = np.load(file_path)
+                all_data2.extend(data_traj)
+    print(len(all_data2))
+    '''
 
-    dset = FrankaDatasetTraj(data, cfg, sim=cfg.data.sim)
-    del data
-    split_sizes = [int(len(dset) * 0.8), len(dset) - int(len(dset) * 0.8)]
-    train_set, test_set = random_split(dset, split_sizes)
+    #breakpoint()
+    '''
+    np_load_old = np.load
+    np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
+    all_data = np.load("/home/jess/toto_p2/toto_benchmark/toto_benchmark/embedded_data.npy")
+    '''
+
+    dset_pnp_push_sweep = FrankaDatasetTraj(convert_to_arrays(all_data), cfg, sim=cfg.data.sim)
+    #breakpoint()
+   # dset_pnp_sweep = FrankaDatasetTraj(convert_to_arrays(all_data), cfg, sim=cfg.data.sim)
+    #np.save("/home/jess/toto_p2/toto_benchmark/toto_benchmark/pnp_sweep.npy", dset_pnp_sweep)
+    #np.save("/home/jess/toto_p2/toto_benchmark/toto_benchmark/pnp_push_sweep.npy", dset_pnp_push_sweep)
+    del all_data
+    #del all_data2
+    #breakpoint()
+    split_sizes = [int(len(dset_pnp_push_sweep) * 0.8), len(dset_pnp_push_sweep) - int(len(dset_pnp_push_sweep) * 0.8)]
+    train_set, test_set = random_split(dset_pnp_push_sweep, split_sizes)
 
     num_workers = 0
     train_loader = DataLoader(train_set, batch_size=cfg.training.batch_size, \
                               shuffle=True, num_workers=num_workers, pin_memory=True)
     test_loader = DataLoader(test_set, batch_size=cfg.training.batch_size)
-    agent, _ = init_agent_from_config(cfg, cfg.training.device, normalization=dset)
+    agent, _ = init_agent_from_config(cfg, cfg.training.device, normalization=dset_pnp_push_sweep) 
     train_metric, test_metric = baselines.Metric(), baselines.Metric()
 
     for epoch in range(cfg.training.epochs):
@@ -89,7 +123,11 @@ def main(cfg : DictConfig) -> None:
         test_metric.reset()
         batch = 0
         for data in train_loader:
+            #breakpoint()
+            #print("training")
             for key in data:
+                #print(f"key: {key}")
+                #print(f"data key: {data[key]}")
                 data[key] = data[key].to(cfg.training.device)
             agent.train(data)
             acc_loss += agent.loss
@@ -98,11 +136,13 @@ def main(cfg : DictConfig) -> None:
             batch += 1
 
         for data in test_loader:
+            #print("testing")
             for key in data:
                 data[key] = data[key].to(cfg.training.device)
             test_metric.add(agent.eval(data))
 
         log.info('epoch {} \t train {:.6f} \t test {:.6f}'.format(epoch, train_metric.mean, test_metric.mean))
+        print(f"epoch: {epoch}, train metric mean: {train_metric.mean}, test metric mean: {test_metric.mean}")
         log.info(f'Accumulated loss: {acc_loss}')
         if epoch % cfg.training.save_every_x_epoch == 0:
             agent.save(os.getcwd())
@@ -118,6 +158,15 @@ def main(cfg : DictConfig) -> None:
         eval_agent(create_agent_predict_fn(agent, cfg))
 
     log.info("Saved agent to {}".format(os.getcwd()))
+
+    
+def convert_to_arrays(obj):
+    if isinstance(obj, list):  # If the current object is a list, convert it to a NumPy array
+        return np.array([convert_to_arrays(item) for item in obj])
+    elif isinstance(obj, dict):  # If it's a dictionary, apply this function to each of its values
+        return {key: convert_to_arrays(value) for key, value in obj.items()}
+    else:  # If it's neither (meaning it's a leaf node in the structure), return it as is
+        return obj
 
 if __name__ == '__main__':
     main()

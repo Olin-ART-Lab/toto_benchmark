@@ -1,8 +1,10 @@
 import os
 import pickle
 import torch
+import numpy as np
 from torch import nn
 from .BaseAgent import BaseAgent
+from .module_sac_models_PS import GausPiNetwork
 
 class BCAgent(BaseAgent):
     def __init__(self, models, learning_rate, device, H=1):
@@ -14,6 +16,7 @@ class BCAgent(BaseAgent):
         return self.models['decoder'](sample['inputs'])
 
     def compute_loss(self, sample):
+        #breakpoint()
         output = self.forward(sample)
         labels = sample['labels']
         losses = self.loss_fn(output.view(-1, output.size(-1)), labels)
@@ -59,6 +62,7 @@ class DeepMLPBlock(nn.Module):
 class Policy(nn.Module):
     def __init__(self, inp_dim, out_dim, hidden_dim=128):
         super(Policy, self).__init__()
+        #part to swap out
         self.fc1 = DeepMLPBlock(inp_dim, hidden_dim)
         self.fc2 = DeepMLPBlock(hidden_dim, hidden_dim)
         self.final = nn.Linear(hidden_dim, out_dim)
@@ -70,7 +74,7 @@ class Policy(nn.Module):
     def set_stats(self, dataset):
         inp_dim, inp_mean, inp_std = get_stats(dataset.inputs)
         _, out_mean, out_std = get_stats(dataset.labels)
-
+        #breakpoint()
         self.inp_mean[:inp_dim].copy_(inp_mean)
         self.inp_std[:inp_dim].copy_(inp_std)
         self.out_mean.copy_(out_mean)
@@ -111,12 +115,18 @@ def _init_agent_from_config(config, device='cpu', normalization=None):
         hidden_dim = config.agent.hidden_dim
     else:
         hidden_dim = 128
+    anchors = np.load("/home/jess/kitchen-bot/anchor_states_14_embeddings.npy")
+    anchor_tensor = torch.from_numpy(anchors).double()
+    anchor_tensor.to("cuda:0")
     models = {
-        'decoder': Policy(
+        'decoder': GausPiNetwork(2055,2055, 128, 7, 2055, 256, anchor_tensor)
+    }
+    '''
+    (
             config.data.in_dim,
             config.data.out_dim * H, 
             hidden_dim)
-    }
+    
 
     if normalization is not None:
         models['decoder'].set_stats(normalization)
@@ -124,8 +134,9 @@ def _init_agent_from_config(config, device='cpu', normalization=None):
         assert os.path.isfile(os.path.join(config.saved_folder, 'policy_stats.pkl'))
         models['decoder'].load_stats(config.saved_folder)
 
+        '''
     for k,m in models.items():
-        m.to(device)
+        m.to("cuda:0")
         if k=="img_encoder" and config.model.use_resnet:
             print("*** Resnet image encoder, do not init weight")
         else:

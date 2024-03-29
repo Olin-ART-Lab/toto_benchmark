@@ -139,7 +139,7 @@ def load_pvr_model(embedding_name, *args, **kwargs):
         model, embedding_dim = moco_conv4_compression_model(CHECKPOINT_DIR + '/moco_v2_conv4.pth.tar')
         transforms = _resnet_transforms
     elif embedding_name == 'moco_conv5':
-        model, embedding_dim = moco_conv5_model(CHECKPOINT_DIR + '/moco_v2_800ep_pretrain.pth.tar')
+        model, embedding_dim = moco_conv5_model('/home/jess/toto_benchmark/assets/moco_v2_800ep_pretrain.pth.tar')
         transforms = _resnet_transforms
     elif embedding_name == 'moco_conv5_robocloud':
         model, embedding_dim = moco_conv5_model(CHECKPOINT_DIR + '/moco_conv5_robocloud.pth')
