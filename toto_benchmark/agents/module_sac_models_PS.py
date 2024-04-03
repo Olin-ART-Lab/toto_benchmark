@@ -152,6 +152,7 @@ class GausPiNetwork(nn.Module):
         x = self.Ptask(task_state)
         breakpoint()
         output = self.Probot(robot_state, x)
+        breakpoint()
         return output#mean, log_std
     # so what do you actually want?
 

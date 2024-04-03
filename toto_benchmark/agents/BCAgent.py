@@ -13,11 +13,13 @@ class BCAgent(BaseAgent):
         self.H, self.t, self.cache = H, 0, None
 
     def forward(self, sample):
-        return self.models['decoder'](sample['inputs'])#self.models['decoder'].sample(sample['inputs'])
+        x = self.models['decoder'](sample['inputs'])
+        breakpoint()
+        return x#self.models['decoder'].sample(sample['inputs'])
 
     def compute_loss(self, sample):
         breakpoint()
-        output = self.forward(sample)[0]
+        output = self.forward(sample)
         labels = sample['labels']
         losses = self.loss_fn(output, labels)
         self.loss = self.loss_reduction(losses)
