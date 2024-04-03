@@ -92,7 +92,7 @@ class GausRobotPiModule(nn.Module):
 
         # self.max_action = env_params['action_max']
         self.norm_input = nn.BatchNorm1d(num_robot_inputs).double()
-        breakpoint()
+        #breakpoint()
         self.linearR = nn.Linear(num_robot_inputs, robot_hidden_dim - interface_dim).double()
         self.linear1 = nn.Linear(robot_hidden_dim, robot_hidden_dim).double()
         self.linear2 = nn.Linear(robot_hidden_dim, 35).double()
@@ -102,15 +102,15 @@ class GausRobotPiModule(nn.Module):
         # self.dropout = nn.Dropout(0.25)
 
     def forward(self, robot_state, task_value):
-        breakpoint()
+        #breakpoint()
         x = self.norm_input(robot_state)
         action_emb = F.relu(self.linearR(x))
-        breakpoint()
+        #breakpoint()
         #stop here
         x = torch.cat([action_emb, task_value], 1)
         x = F.relu(self.linear1(x))
         x = F.relu(self.linear2(x))
-        breakpoint()
+        #breakpoint()
         #mean = self.action_mean(x)
         #log_std = self.action_log_std(x)
         #log_std = torch.clamp(log_std, min=LOG_SIG_MIN, max=LOG_SIG_MAX)
@@ -150,9 +150,9 @@ class GausPiNetwork(nn.Module):
         # extract robot state from task state
         robot_state = task_state[:, 0:7]
         x = self.Ptask(task_state)
-        breakpoint()
+        #breakpoint()
         output = self.Probot(robot_state, x)
-        breakpoint()
+        #breakpoint()
         return output#mean, log_std
     # so what do you actually want?
 
