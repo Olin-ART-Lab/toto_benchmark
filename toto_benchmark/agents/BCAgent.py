@@ -13,13 +13,13 @@ class BCAgent(BaseAgent):
         self.H, self.t, self.cache = H, 0, None
 
     def forward(self, sample):
-        return self.models['decoder'](sample['inputs'])
+        return self.models['decoder'](sample['inputs'])#self.models['decoder'].sample(sample['inputs'])
 
     def compute_loss(self, sample):
-        #breakpoint()
-        output = self.forward(sample)
+        breakpoint()
+        output = self.forward(sample)[0]
         labels = sample['labels']
-        losses = self.loss_fn(output.view(-1, output.size(-1)), labels)
+        losses = self.loss_fn(output, labels)
         self.loss = self.loss_reduction(losses)
 
     def predict(self, sample):
@@ -119,7 +119,7 @@ def _init_agent_from_config(config, device='cpu', normalization=None):
     anchor_tensor = torch.from_numpy(anchors).double()
     anchor_tensor.to("cuda:0")
     models = {
-        'decoder': GausPiNetwork(2055,2055, 128, 7, 2055, 256, anchor_tensor)
+        'decoder': GausPiNetwork(2055,2055, 128, 7, 7, 256, anchor_tensor)
     }
     '''
     (
