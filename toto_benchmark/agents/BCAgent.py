@@ -117,7 +117,7 @@ def _init_agent_from_config(config, device='cpu', normalization=None):
         hidden_dim = config.agent.hidden_dim
     else:
         hidden_dim = 128
-    anchors = np.load("/home/jess/kitchen-bot/anchor_states_14_embeddings.npy")
+    anchors = np.load("/home/jess/kitchen-bot/anchor_states_sweep_embeddings.npy")
     anchor_tensor = torch.from_numpy(anchors).double()
     anchor_tensor.to("cuda:0")
     models = {

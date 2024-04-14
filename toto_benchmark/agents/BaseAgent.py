@@ -17,6 +17,7 @@ class BaseAgent(Agent):
         state = {'epoch': self.epoch,
                  'optimizer': self.optimizer.state_dict(),
                  }
+        #breakpoint()
         for mname, m in self.models.items():
             state[mname] = m.state_dict()
             #m.save_stats(foldername)

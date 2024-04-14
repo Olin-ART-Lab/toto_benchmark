@@ -64,57 +64,52 @@ def main(cfg : DictConfig) -> None:
     wandb.init(project="toto-bc", config=flat_dict)
     wandb.run.name = "{}".format(agent_name)
 
-  
+    '''
     # modify the default parameters of np.load
-    np_load_old = np.load
-    np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
-    all_data = []
-    dir_of_trajs = "/home/jess/bridge_data_v2/data_processing/data/raw/rss/toykitchen2/pnp_push_sweep/00"
-    for root, dirs, files in os.walk(dir_of_trajs):
-        if os.path.basename(root) == "train" or os.path.basename(root) == "val":
-            for filename in files:
-                #print(filename)
-                file_path = os.path.join(root, filename)
-                data_traj = np.load(file_path)
-                all_data.extend(data_traj)
-    print(len(all_data))
-    '''
-      # modify the default parameters of np.load
-    all_data2 = []
-    dir_of_trajs = "/home/jess/bridge_data_v2/data_processing/data/raw/rss/toykitchen2/pnp_sweep/00"
-    for root, dirs, files in os.walk(dir_of_trajs):
-        if os.path.basename(root) == "train" or os.path.basename(root) == "val":
-            for filename in files:
-                #print(filename)
-                file_path = os.path.join(root, filename)
-                data_traj = np.load(file_path)
-                all_data2.extend(data_traj)
-    print(len(all_data2))
+        np_load_old = np.load
+        np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
+        all_data = []
+        dir_of_trajs = "/home/jess/sweep_data"
+        for root, dirs, files in os.walk(dir_of_trajs):
+            #breakpoint()
+            print(files)
+            if os.path.basename(root) == "train" or os.path.basename(root) == "val":
+                for filename in files:
+                    #print(filename)
+                    file_path = os.path.join(root, filename)
+                    #breakpoint()
+                    data_traj = np.load(file_path)
+                    all_data.extend(data_traj)
+        all_data = all_data[0:40]
+        print(len(all_data))
+        breakpoint()
     '''
 
     #breakpoint()
-    '''
+    
     np_load_old = np.load
     np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
-    all_data = np.load("/home/jess/toto_p2/toto_benchmark/toto_benchmark/embedded_data.npy")
-    '''
+    #all_data = np.load("/home/jess/toto_p2/toto_benchmark/toto_benchmark/embedded_data.npy")
+    
 
-    dset_pnp_push_sweep = FrankaDatasetTraj(convert_to_arrays(all_data), cfg, sim=cfg.data.sim)
+    #dset_pnp_push_sweep = FrankaDatasetTraj(convert_to_arrays(all_data), cfg, sim=cfg.data.sim)
     #breakpoint()
-   # dset_pnp_sweep = FrankaDatasetTraj(convert_to_arrays(all_data), cfg, sim=cfg.data.sim)
-    #np.save("/home/jess/toto_p2/toto_benchmark/toto_benchmark/pnp_sweep.npy", dset_pnp_sweep)
+    #dset_sweep = FrankaDatasetTraj(convert_to_arrays(all_data), cfg, sim=cfg.data.sim)
+    #np.save("/home/jess/toto_p2/toto_benchmark/toto_benchmark/sweep.npy", dset_sweep)
     #np.save("/home/jess/toto_p2/toto_benchmark/toto_benchmark/pnp_push_sweep.npy", dset_pnp_push_sweep)
-    del all_data
+    #del all_data
+    #breakpoint()
     #del all_data2
     #breakpoint()
-    split_sizes = [int(len(dset_pnp_push_sweep) * 0.8), len(dset_pnp_push_sweep) - int(len(dset_pnp_push_sweep) * 0.8)]
-    train_set, test_set = random_split(dset_pnp_push_sweep, split_sizes)
+    dset_sweep = np.load("/home/jess/toto_p2/toto_benchmark/toto_benchmark/sweep.npy") 
+    split_sizes = [int(len(dset_sweep) * 0.8), len(dset_sweep) - int(len(dset_sweep) * 0.8)]
+    train_set, test_set = random_split(dset_sweep, split_sizes)
 
     num_workers = 0
     train_loader = DataLoader(train_set, batch_size=cfg.training.batch_size, \
                               shuffle=True, num_workers=num_workers, pin_memory=True)
     test_loader = DataLoader(test_set, batch_size=cfg.training.batch_size)
-    agent, _ = init_agent_from_config(cfg, cfg.training.device, normalization=dset_pnp_push_sweep) 
+    agent, _ = init_agent_from_config(cfg, cfg.training.device, normalization=dset_sweep) 
     train_metric, test_metric = baselines.Metric(), baselines.Metric()
 
     for epoch in range(cfg.training.epochs):

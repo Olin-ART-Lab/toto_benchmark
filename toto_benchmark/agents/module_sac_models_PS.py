@@ -175,3 +175,6 @@ class GausPiNetwork(nn.Module):
         log_prob = log_prob.sum(1, keepdim=True)
         dist_ent = normal.entropy().mean()
         return action, log_prob, dist_ent
+    
+    def save_stats():
+        pass
